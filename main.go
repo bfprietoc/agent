@@ -28,23 +28,24 @@ type SPSoftwareDataType struct {
 	KernelVersion string `json:"kernel_version"`
 }
 
-func CpuMacInfo() string {
+func CpuMacInfo(c chan string) {
 	cpuCmd, err := exec.Command("sysctl", "-n", "machdep.cpu.brand_string").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return string(cpuCmd)
+
+	c <- string(cpuCmd)
 }
 
-func CpuLinuxInfo() string {
+func CpuLinuxInfo(c chan string) {
 	cpuCmd, err := exec.Command("bash", "-c", "lscpu | egrep 'Model name'").Output()
 	if err != nil {
 		panic(err)
 	}
-	return string(cpuCmd)
+	c <- string(cpuCmd)
 }
 
-func ProccesInfo() string {
+func ProccesInfo(c chan string) {
 	psCmd, err := exec.Command("ps", "-e").Output()
 	if err != nil {
 		panic(err)
@@ -67,10 +68,10 @@ func ProccesInfo() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return string(processArray)
+	c <- string(processArray)
 }
 
-func UsersInfo() string {
+func UsersInfo(c chan string) {
 	usersCmd, err := exec.Command("who").Output()
 	if err != nil {
 		log.Fatal(err)
@@ -80,10 +81,10 @@ func UsersInfo() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return string(usersArray)
+	c <- string(usersArray)
 }
 
-func OsMacInfo() string {
+func OsMacInfo(c chan string) {
 	var macInfo MacOsInformation
 	osCmd, err := exec.Command("system_profiler", "SPSoftwareDataType", "-json").Output()
 	if err != nil {
@@ -97,22 +98,26 @@ func OsMacInfo() string {
 	macName := macInfo.SPSoftwareDataType[0].OsVersion
 	macOsInfo := macName + macVersion
 
-	return macOsInfo
+	c <- macOsInfo
 }
 
-func OsLinuxInfo() string {
+func OsLinuxInfo(c chan string) {
 	osCmd, err := exec.Command("lsb_release", "-d").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return string(osCmd)
+	c <- string(osCmd)
 }
 
 func main() {
-	cpuInfo := CpuLinuxInfo()
-	processInfo := ProccesInfo()
-	usersInfo := UsersInfo()
-	osInfo := OsLinuxInfo()
+	channel := make(chan string)
+
+	go CpuMacInfo(channel)
+	go ProccesInfo(channel)
+	go UsersInfo(channel)
+	go OsMacInfo(channel)
+
+	cpuInfo, processInfo, usersInfo, osInfo := <-channel, <-channel, <-channel, <-channel
 
 	content := "Content-Type: application/json"
 	url := "http://ec2-18-188-229-228.us-east-2.compute.amazonaws.com:8080/data"
